@@ -18,7 +18,7 @@ The goal is to help payers in their journey to deliver a SMART/FHIR deployment i
 The diagram below shows a high level overview of what a SMART/FHIR deployment looks like.
 The reference implementation described in this document has as strong focus on the Authorization Service component, but all components with a green checkmark have at least a sample implementation.
 
-<<Reference image here!>>
+![Components Diagram](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Components.png "Components Diagram")
 
 ## Reference Implementation- Standards Used
 
@@ -43,7 +43,7 @@ The SMART specification is an extension of the OAuth2 specification, as defined 
 There are several requirements in the SMART specification that require additional components over/above what Okta provides as a standard OIDC/OAuth2 authorization service. All of these components are provided in the reference implementation.
 * Launch parameter handling - when a SMART client requests access, it may ask for application session context, such as an active patient id to be returned from the authorization service.  The authorization service is responsible for determining the active patient record, even including a user-patient selection widget on the OAuth2 consent screen in the event that the user may view multiple patients. This behavior is not part of the OAuth2 specification, and requires special handling with Okta (or any other standard OAuth2 service).
 Additionally, the SMART specification expects this session context to be returned in the /token response, ***next to*** any id/access tokens.  While this expectation is in line with RFC6749, many standard authorization servers (including Okta) do not support this practice, and instead rely on the Open ID Connect protocol to communicate application session level information.
-<<token response example here>> <<picker example here>>
+![Launch Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/launch_example.png "Launch Example")
 
 * Well known endpoints - the SMART specification has 2 additional well known metadata endpoints that are not part of the OAuth2 specification.  These endpoints provide typical authorization server metadata, and a capabilities statement.  Sample metadata endpoints are provided as part of this reference implementation.
 
@@ -72,7 +72,7 @@ The current implementation uses AWS products to host required functionality, but
 **Reference implementation unsupported use cases:**
 * Refresh tokens for public applications- Due to security concerns. This use case would also require a refresh token cache so the client_id of the token can be determined at run time. This cache would introduce significant complexity to the design and implementation.
 
-<<Ref architecture diagram here>>
+![Reference Implementation Architecture](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Reference_Architecture.png "Reference Implementation Architecture")
 
 ### Component Detail
 
@@ -106,7 +106,7 @@ The token proxy is what is called by the SMART client to exchange it's authoriza
 * To perform private_key_jwt authentication with Okta for public applications.  A single, shared secret key is shared by all public SMART clients.  For confidential clients, client_id/client_secret from the SMART client is forwarded on to Okta.
 
 ## Reference Implementation Flow
-<<Insert flow diagram here>>
+![Reference Implementation Flow](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Reference_flow.png "Reference Implementation Flow")
 
 1.  User accesses a SMART-enabled app.
 
