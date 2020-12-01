@@ -1,7 +1,7 @@
 # Okta SMART on FHIR
 ## Okta API Access Management for SMART Authorization
 
-Setup a Reference SMART/FHIR Deployment Here!
+[Setup a Reference SMART/FHIR Deployment Here!](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/SETUP.md)
 
 ## Introduction
 With the introduction of the [CMS Interoperability and Patient Access final rule](https://www.cms.gov/Regulations-and-Guidance/Guidance/Interoperability/index) in early 2020, Medicare/Medicaid/CHIP serving health insurance providers must provide a standardized API for patients to access their healthcare related data.
@@ -137,4 +137,4 @@ The token proxy is what is called by the SMART client to exchange it's authoriza
 14.  App accesses the FHIR API
 
 ## Set it up yourself!
-* [Reference Implementation Setup](https://github.com/dancinnamon-okta/okta-smartfhir-demo/blob/master/README.md)
+* [Reference Implementation Setup](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/SETUP.md)

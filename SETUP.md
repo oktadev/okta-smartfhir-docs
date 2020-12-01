@@ -6,8 +6,8 @@ For an overview of this project and all of the components, please see here: [Pro
 ## Guide Index
 * [Prerequisites](#prerequisites)
 * [Okta Authorization Server Configuration](#okta-authorization-server-configuration)
-* [SMART Client Registration - Confidential](#smart-client-registration--confidential)
-* [SMART Client Registration - Public](#smart-client-registration--public)
+* [SMART Client Registration - Confidential](#smart-client-registration---confidential)
+* [SMART Client Registration - Public](#smart-client-registration---public)
 
 ## Prerequisites
 * An Okta tenant ([Get one here free](https://developer.okta.com/signup))
