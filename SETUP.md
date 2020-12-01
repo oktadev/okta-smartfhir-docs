@@ -20,7 +20,7 @@ The steps below can be followed in order to complete the SMART/FHIR deployment w
 ## Okta Profile Attribute - Patient ID
 A key requirement of a SMART/FHIR deployment is the ability to associate a patient id with a user record.  To satisfy this requirement, we need an Okta profile attribute that will hold a patient id for each patient user within the system.
 In the Okta profile editor, create a string attribute called "patient_id" as shown:
-<<PROFILE EDITOR PICTURE>>
+![Profile Editor Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/profile_editor_sample.png "Profile Editor Example")
 
 ## Okta Token Hook Configuration
 The token hook is executed at runtime by Okta, and is responsible for ensuring that the custom consent process was properly followed, and in addition it ensures that the consent selections made by the user "which patient, which scopes" are honored.
@@ -29,7 +29,7 @@ If an attacker (or curious user) attempts to alter the authorization request dat
 
 To configure the token hook, use the Workflows->Inline Hooks menu to create a "Token Inline Hook" as shown:
 Note- the value you'll use is the URL for your Okta-SMART token endpoint you deployed in the prerequisites.
-<<PICTURE SHOWING THE TOKEN INLINE HOOK>>
+![Token Hook Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/token_hook_example.png "Token Hook Example")
 
 ## Okta Authorization Server Configuration
 A key element in this reference SMART/FHIR implementation is an OAuth2 authorization server supplied by Okta. This authorization server was created in the prerequisites when the Okta-SMART endpoints were deployed.  In this section we'll edit that same authorization server.
@@ -37,10 +37,10 @@ A key element in this reference SMART/FHIR implementation is an OAuth2 authoriza
 ### Scopes
 The first piece of configuration required is to setup the valid SMART authorization scopes in Okta as valid scopes.
 The following document contains a sample API call that can be used to create all of the claims/scopes necessary.
-<<Link to template API call for adding all possible scopes>>
+<<TODO: Generate this script>>
 
 Here are a few example scopes that can be configured manually:
-<<Link to screenshot of sample scopes>>
+![Scopes Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/scopes_example.png "Scopes Example")
 
 ### Claims
 Given that the bulk of the SMART specification relies on OAuth2 (and supports opaque tokens), there are minimal requirements for setting up claims in Okta.
@@ -60,7 +60,7 @@ Include with Scope: fhirUser
 Include in: ID Token
 
 An example screenshot is shown below:
-<<LINK TO CLAIMS SCREENSHOT>>
+![Claims Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/claims_example.png "Claims Example")
 
 **Launch Parameter Response Claims**
 The SMART launch specification requires any session-level information (such as patient id) to be returned in the /token response alongside the access token.  Okta does not support this out of the box, so the reference implementation includes a /token proxy that will satisfy this requirement.
@@ -82,7 +82,7 @@ Applied to Clients: All (for demo purposes)
 Allowed Grants: Only Authorization Code
 Scopes: All scopes (for demo purposes)
 Inline Hook: Select the token hook you created earlier
-<<POLICY CONFIGURATION>>
+![Policy Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/access_policy_sample.png "Policy Example")
 
 ## SMART Client Registration - Confidential
 There are no special considerations for creating confidential SMART clients.  The dynamic client registration protocol may be used, or for demonstration purposes, the Okta admin UI may be used to create a confidential client as shown.
@@ -95,7 +95,7 @@ Redirect URI: 2 values shall be put here!
 * The smart_proxy_callback URL that you were provided when you deployed the Okta-SMART endpoints.
 * The actual redirect_url of the application (this is validated by the /authorize proxy)
 
-<<PICTURE SHOWING A SMART CONFIDENTIAL CLIENT APP>>
+![Confidential Client Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/confidential_client_example.png "Confidential Client Example")
 
 ## SMART Client Registration - Public
 Public SMART clients do require some additional configuration over/above what's possible in the Okta admin console.  This is due to the fact that the Okta-SMART /token proxy uses [private_key_jwt](https://developer.okta.com/docs/reference/api/oidc/#jwt-with-private-key) client authentication with Okta.
