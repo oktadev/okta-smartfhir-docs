@@ -95,7 +95,10 @@ Note- the value you'll use is the URL for your Okta-SMART token endpoint you dep
 ![Token Hook Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/token_hook_example.png "Token Hook Example")
 
 ## Okta Authorization Server Configuration
-A key element in this reference SMART/FHIR implementation is an OAuth2 authorization server supplied by Okta. This authorization server was created in the prerequisites when the Okta-SMART endpoints were deployed.  In this section we'll edit that same authorization server.
+A key element in this reference SMART/FHIR implementation is an OAuth2 authorization server supplied by Okta. This authorization server was created earlier in the setup process when the Okta-SMART endpoints were deployed.  In this section we'll edit that same authorization server.
+
+Update the "audience" of the authorization server to match your API endpoints you deployed in the previous section of this guide.
+Example: https://xxxyyy.execute-api.us-east-1.amazonaws.com/dev
 
 ### Scopes
 The first piece of configuration required is to setup the valid SMART authorization scopes in Okta as valid scopes.
