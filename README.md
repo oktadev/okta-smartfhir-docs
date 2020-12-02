@@ -72,6 +72,13 @@ The current implementation uses AWS products to host required functionality, but
 **Reference implementation unsupported use cases:**
 * Refresh tokens for public applications- Due to security concerns. This use case would also require a refresh token cache so the client_id of the token can be determined at run time. This cache would introduce significant complexity to the design and implementation.
 
+**Tested with clients**
+These SMART enabled clients were used while developing this solution to ensure that the requirements of the SMART launch framework are correctly implemented:
+* [Inferno Test Suite](https://inferno.healthit.gov/community) - Public or confidential app
+* [SMART/FHIR iOS Demo](https://github.com/dancinnamon-okta/SoF-Demo) - Public app
+* [Demo Patient Portal](https://github.com/udplabs/zartan) - Confidential app
+* [Cerner SMART App Validator](https://smart.sandboxcerner.com/smart-app-validator-2.0/launch.html) - Public app
+
 ![Reference Implementation Architecture](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Reference_Architecture.png "Reference Implementation Architecture")
 
 ### Component Detail
