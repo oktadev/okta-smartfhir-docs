@@ -78,6 +78,8 @@ To deploy this example, run the following command:
 serverless deploy -v
 ```
 
+At this point you should have a number of serverless functions in AWS (until other clouds are supported).  Continue on to setup the rest of the assets in Okta to support this reference implementation.
+
 ## Okta Profile Attribute - Patient ID
 A key requirement of a SMART/FHIR deployment is the ability to associate a patient id with a user record.  To satisfy this requirement, we need an Okta profile attribute that will hold a patient id for each patient user within the system.
 In the Okta profile editor, create a string attribute called "patient_id" as shown:
@@ -97,6 +99,7 @@ A key element in this reference SMART/FHIR implementation is an OAuth2 authoriza
 
 ### Scopes
 The first piece of configuration required is to setup the valid SMART authorization scopes in Okta as valid scopes.
+
 The following document contains a sample API call that can be used to create all of the claims/scopes necessary.
 <<TODO: Generate this script>>
 
