@@ -5,18 +5,79 @@ For an overview of this project and all of the components, please see here: [Pro
 
 ## Guide Index
 * [Prerequisites](#prerequisites)
+* [Solution Deployment and Initial Okta Setup](#solution-deployment-and-initial-okta-setup)
+* [Okta Profile Setup](#okta-profile-attribute---patient-id)
+* [Okta Token Hook Configuration](#okta-token-hook-configuration)
 * [Okta Authorization Server Configuration](#okta-authorization-server-configuration)
 * [SMART Client Registration - Confidential](#smart-client-registration---confidential)
 * [SMART Client Registration - Public](#smart-client-registration---public)
 
 ## Prerequisites
 * An Okta tenant ([Get one here free](https://developer.okta.com/signup))
-* A  deployed instance of the [Okta-SMART endpoints](https://github.com/dancinnamon-okta/okta-smartfhir-demo) - follow the deploy guide.
+* Node.js 12+
+* Serverless framework ([Get started here](https://www.serverless.com/framework/docs/getting-started/#via-npm))
+* OpenSSL libraries (included on any *nix distribution)
 * Postman, or other API invocation tool (not strictly required- but will make configuration easier)
 
-Once these three pre-requisites are complete, you'll have all of the physical components necessary to support a SMART/FHIR deployment.  However, additional configuration is required within Okta to finish the integration.
+## Solution Deployment and Initial Okta setup
+In this section, we'll do some initial Okta setup, as well as deploy all of the requisite endpoints to our chosen cloud serverless platform.
 
-The steps below can be followed in order to complete the SMART/FHIR deployment with Okta.
+### Step 1- Install and configure the serverless framework
+- [Get started here](https://www.serverless.com/framework/docs/getting-started/#via-npm)
+- [Provide the platform with AWS credentials](https://www.serverless.com/framework/docs/providers/aws/guide/credentials/)
+
+### Step 2- Clone the reference implementation repository into your development machine filesystem.
+```
+git clone https://github.com/dancinnamon-okta/okta-smartfhir-demo.git
+cd okta-smartfhir-demo
+```
+
+### Step 3- Generate an SSL public/private key that will be used by the token endpoint to authenticate with Okta.
+```
+openssl genrsa -out private_key.pem 2048
+openssl rsa -in private_key.pem -out public_key.pem -pubout -outform PEM
+```
+***Note - at this time the file names are hard-coded, so please name them exactly as-is (or submit a PR to make this configurable)***
+
+### Step 4- Install all of the libraries, and prepare for configuration
+```
+mv serverless.yml.example serverless.yml
+npm install
+```
+### Step 5- Create the authorization server in Okta
+In Okta, create a custom authorization server (in the Security->API menu) that you'll be using to authorize users in the demo.
+Give the server whatever name you'd like.  Put in a placeholder value in the "audience" field for now- we'll update it later.
+
+Update the serverless.yml with the proper details:
+```
+AUTHZ_ISSUER: https://_YOUR_ORG_.oktapreview.com/oauth2/_YOUR_AUTHZ_SERVER_
+AUTHZ_SERVER: _YOUR_AUTHZ_SERVER_
+OKTA_ORG: _YOUR_ORG_.oktapreview.com
+```
+
+### Step 6- Create the Patient Picker application in Okta
+In Okta, create a new OIDC web application (in the applications menu), using the authorization code flow only.  Remember to assign your users to this app.
+Update the serverless.yml file with the proper details:
+```
+PICKER_DISPLAY_NAME: Patient Picker
+PICKER_CLIENT_ID: _CLIENT_ID_FOR_PATIENT_PICKER_
+PICKER_CLIENT_SECRET: _CLIENT_SECRET_FOR_PATIENT_PICKER_
+```
+
+### Step 7- Create an API key for the Patient Picker
+At this time, the Patient Picker application uses an API key to read authorization server details, so we need an API key minted. PR's are welcome to update to use OAuth2 instead of an API key. Use the Security->API->Tokens menu to create this token.
+
+Update the serverless.yml file with the proper details:
+```
+API_KEY: _AN_API_KEY_
+```
+
+### Step 8- Deploy!
+To deploy this example, run the following command:
+```
+serverless deploy -v
+```
+
 ## Okta Profile Attribute - Patient ID
 A key requirement of a SMART/FHIR deployment is the ability to associate a patient id with a user record.  To satisfy this requirement, we need an Okta profile attribute that will hold a patient id for each patient user within the system.
 In the Okta profile editor, create a string attribute called "patient_id" as shown:
