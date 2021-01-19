@@ -47,6 +47,7 @@ npm install
 ### Step 5- Create the authorization server in Okta
 In Okta, create a custom authorization server (in the Security->API menu) that you'll be using to authorize users in the demo.
 Give the server whatever name you'd like.  Put in a placeholder value in the "audience" field for now- we'll update it later.
+Don't worry about any other authorization server configurations- it'll be fully configured later in this guide.
 
 Update the serverless.yml with the proper details:
 ```
@@ -95,11 +96,10 @@ Note: the value you'll use is the URL for your API Gateway URL + tokenhook. Exam
 ![Token Hook Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/token_hook_example.png "Token Hook Example")
 
 ## Okta Authorization Server Configuration
-A key element in this reference SMART/FHIR implementation is an OAuth2 authorization server supplied by Okta. This authorization server was created earlier in the setup process when the Okta-SMART endpoints were deployed.  In this section we'll edit that same authorization server.
+A key element in this reference SMART/FHIR implementation is a properly configured OAuth2 authorization server supplied by Okta. This authorization server was created earlier in the setup process when the Okta-SMART endpoints were deployed.  In this section we'll edit that same authorization server to finish it's configuration.
 
-Update the "audience" of the authorization server to match your API endpoints you deployed in the previous section of this guide.
-Example: https://xxxyyy.execute-api.us-east-1.amazonaws.com/dev
-- TODO: aud should be the url of the FHIR Resource Server. See [2.5.1](https://docs.smarthealthit.org/authorization/best-practices/)
+Update the "audience" of the authorization server to match the url of your FHIR Resource Server. See [2.5.1](https://docs.smarthealthit.org/authorization/best-practices/).
+The reference implementation comes with example resource server endpoints- so if you're using this implementation for exmaple/reference purposes, this value will take the form: https://xxxyyy.execute-api.us-east-1.amazonaws.com/dev
 
 ### Scopes
 The first piece of configuration required is to setup the valid SMART authorization scopes in Okta as valid scopes (in the Security->API->Authorization Servers menu).
@@ -109,8 +109,6 @@ The following document contains a sample API call that can be used to create all
 
 Here are a few example scopes that can be configured manually:
 ![Scopes Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/scopes_example.png "Scopes Example")
-
-- TODO looks like you also need to add `patient_selection` scope
 
 ### Claims
 Given that the bulk of the SMART specification relies on OAuth2 (and supports opaque tokens), there are minimal requirements for setting up claims in Okta.
@@ -139,22 +137,31 @@ The token proxy will take any claim in the access token that begins with **_laun
 For example, a claim in Okta called "launch_response_patient" will cause the token proxy to include a parameter called "patient" in its response alongside the access token.  This works with ANY claim- not only the patient parameter.
 
 ### Access Policies
-Before any SMART authorizations may take place, an access policy must be created to handle all SMART applications.
+Access Policies in Okta determine security controls for applications and users as they authorize via OIDC/OAuth2.  They detrermine which scopes an application may request, which ones may obtain a refresh token, token lifetimes, as well as other parameters.
 
-**_Note:_**
-_There should already be 1 access policy that you created during the prerequisites.  The existing policy should only apply to the custom consent/patient picker application! It is important that this policy you're about to create not apply to the custom consent/patient picker application_
+For this reference implementation we require 2 Access Policies:
+* One policy that will apply to only the patient picker application.
+* One (seperate) policy that will apply to all SMART-enabled applications.
 
-- TODO update this there were no prerequisite steps doing this ^
+**Patient Picker Access Policy**
+Configure the policy/rule as follows and shown:
+Applied to Clients: Patient Picker
+Allowed Grants: Only Authorization Code
+Scopes: openid, email, proflie
+Inline Hook: NONE
+![Picker Policy Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/picker_access_policy_sample.png "Picker Policy Example")
 
-Create a new access policy that will be used for all other OAuth2 clients (except for the custom consent app).
-This policy shall have the lowest priority.
-
+**SMART Application Access Policy**
 Configure the policy/rule as follows and shown:
 Applied to Clients: All (for demo purposes)
 Allowed Grants: Only Authorization Code
-Scopes: All scopes (for demo purposes)
+Scopes: All scopes (for demo purposes- more granular control may be applied for production purposes)
 Inline Hook: Select the token hook you created earlier
-![Policy Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/access_policy_sample.png "Policy Example")
+![SMART Policy Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/access_policy_sample.png "SMART Policy Example")
+
+Note: Okta's Access Policies execute in a prioritized "first match" manner.  This means that the "Patient Picker" policy MUST be priority number 1 in order to take effect!
+![Policy Priority](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/access_policy_priority.png "Policy Priority")
+
 
 ## SMART Client Registration - Confidential
 There are no special considerations for creating confidential SMART clients.  The dynamic client registration protocol may be used, or for demonstration purposes, the Okta admin UI may be used to create a confidential client as shown.
@@ -211,4 +218,69 @@ curl -v -X POST \
 }' "https://${yourOktaDomain}/api/v1/apps"
 ```
 
-- TODO how can I verify it is set up correctly?
+If the call was successful, you will be presented with the entire application object, and it should look like  the following:
+The really important pieces are the:
+* token_endpoint_auth_method: The value should be "private_key_jwt"
+* jwks: This entire object should exist on the application object coming back, and should look similar to the example shown.
+
+Note: Some parts of the application object have been removed from this example to shorten it up.
+```
+{
+    "id": "fdaghjk",
+    "name": "oidc_client",
+    "label": "Sample Public SMART Client",
+    "status": "ACTIVE",
+    "lastUpdated": "2021-01-19T19:16:08.000Z",
+    "created": "2021-01-19T19:16:07.000Z",
+    "features": [],
+    "signOnMode": "OPENID_CONNECT",
+    "credentials": {
+        "userNameTemplate": {
+            "template": "${source.login}",
+            "type": "BUILT_IN"
+        },
+        "signing": {
+            "kid": "CaJJtJQa3JpDjeElxwznCO6tA1BrkpRehrUdwxHcuxY"
+        },
+        "oauthClient": {
+            "autoKeyRotation": true,
+            "client_id": "0oa9njv65d4piV8kE2p7",
+            "token_endpoint_auth_method": "private_key_jwt"
+        }
+    },
+    "settings": {
+        "oauthClient": {
+            "client_uri": null,
+            "logo_uri": null,
+            "redirect_uris": [
+                "https://smart-proxy-callback-url",
+                "https://actual-app-callback-url"
+            ],
+            "response_types": [
+                "code"
+            ],
+            "grant_types": [
+                "authorization_code"
+            ],
+            "jwks": {
+                "keys": [
+                    {
+                        "kty": "RSA",
+                        "kid": null,
+                        "use": null,
+                        "e": "AQAB",
+                        "n": "q1oGvoqzaswn08dqJZl6A5USqiVvZA-JYa3QwEJ-kXnl-fHoCqtx8TOI3xYG29F5UhFt-gQukVHh8xh4dmW2phDnRahqtbuuk4qkepL0k3E57WRGKgp_fqwFxzpGEgq__KAfH7dUYNwpS1APrgPN1DlkdKdrtaL956Zxjad01MURLQRnR0lClCZoNXqgasx_aF7Wwu-iscSUiOA-oeHl4RNWMJPkEy9vaUVc39rLhTVu534cGA3Vw4y8SaJ8S0-Np6Zzl8S8eedKdTsGLvDi5pmgqJCW_4nKxl6jGefgsj5MOPXeHzbPBh8ZbMyrxVWd_Aqck4LcB7JX6sKPFMOSRQ"
+                    }
+                ]
+            },
+            "application_type": "web",
+            "consent_method": "TRUSTED",
+            "issuer_mode": "CUSTOM_URL",
+            "idp_initiated_login": {
+                "mode": "DISABLED",
+                "default_scope": []
+            }
+        }
+    },
+}
+```
