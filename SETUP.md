@@ -41,7 +41,7 @@ openssl rsa -in private_key.pem -out public_key.pem -pubout -outform PEM
 
 ### Step 4- Install all of the libraries, and prepare for configuration
 ```
-mv serverless.yml.example serverless.yml
+mv serverless.aws.example.yml serverless.yml
 npm install
 ```
 ### Step 5- Create the authorization server in Okta
@@ -91,7 +91,7 @@ The token hook is executed at runtime by Okta, and is responsible for ensuring t
 If an attacker (or curious user) attempts to alter the authorization request data, or bypass the custom consent screen altogether- the token hook will fail validation, and then entire authorization request will fail.
 
 To configure the token hook, use the Workflows->Inline Hooks menu to create a "Token Inline Hook" as shown:
-Note- the value you'll use is the URL for your Okta-SMART token endpoint you deployed in the prerequisites.
+Note: the value you'll use is the URL for your API Gateway URL + tokenhook. Example: `https://{uid}.execute-api.{region}.amazonaws.com/{stage}/tokenhook`
 ![Token Hook Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/token_hook_example.png "Token Hook Example")
 
 ## Okta Authorization Server Configuration
@@ -99,15 +99,18 @@ A key element in this reference SMART/FHIR implementation is an OAuth2 authoriza
 
 Update the "audience" of the authorization server to match your API endpoints you deployed in the previous section of this guide.
 Example: https://xxxyyy.execute-api.us-east-1.amazonaws.com/dev
+- TODO: aud should be the url of the FHIR Resource Server. See [2.5.1](https://docs.smarthealthit.org/authorization/best-practices/)
 
 ### Scopes
-The first piece of configuration required is to setup the valid SMART authorization scopes in Okta as valid scopes.
+The first piece of configuration required is to setup the valid SMART authorization scopes in Okta as valid scopes (in the Security->API->Authorization Servers menu).
 
 The following document contains a sample API call that can be used to create all of the claims/scopes necessary.
 <<TODO: Generate this script>>
 
 Here are a few example scopes that can be configured manually:
 ![Scopes Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/scopes_example.png "Scopes Example")
+
+- TODO looks like you also need to add `patient_selection` scope
 
 ### Claims
 Given that the bulk of the SMART specification relies on OAuth2 (and supports opaque tokens), there are minimal requirements for setting up claims in Okta.
@@ -140,6 +143,8 @@ Before any SMART authorizations may take place, an access policy must be created
 
 **_Note:_**
 _There should already be 1 access policy that you created during the prerequisites.  The existing policy should only apply to the custom consent/patient picker application! It is important that this policy you're about to create not apply to the custom consent/patient picker application_
+
+- TODO update this there were no prerequisite steps doing this ^
 
 Create a new access policy that will be used for all other OAuth2 clients (except for the custom consent app).
 This policy shall have the lowest priority.
@@ -205,3 +210,5 @@ curl -v -X POST \
 		}
 }' "https://${yourOktaDomain}/api/v1/apps"
 ```
+
+- TODO how can I verify it is set up correctly?
