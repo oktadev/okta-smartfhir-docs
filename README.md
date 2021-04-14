@@ -1,7 +1,7 @@
 # Okta SMART on FHIR
 ## Okta API Access Management for SMART Authorization
 
-[Setup a Reference SMART/FHIR Deployment Here!](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/SETUP.md)
+[Setup a Reference SMART/FHIR Deployment Here!](https://github.com/oktadeveloper/okta-smartfhir-docs/blob/main/SETUP.md)
 
 ## Introduction
 With the introduction of the [CMS Interoperability and Patient Access final rule](https://www.cms.gov/Regulations-and-Guidance/Guidance/Interoperability/index) in early 2020, Medicare/Medicaid/CHIP serving health insurance providers must provide a standardized API for patients to access their healthcare related data.
@@ -18,7 +18,7 @@ The goal is to help payers in their journey to deliver a SMART/FHIR deployment i
 The diagram below shows a high level overview of what a SMART/FHIR deployment looks like.
 The reference implementation described in this document has as strong focus on the Authorization Service component, but all components with a green checkmark have at least a sample implementation.
 
-![Components Diagram](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Components.png "Components Diagram")
+![Components Diagram](https://github.com/oktadeveloper/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Components.png "Components Diagram")
 
 ## Reference Implementation- Standards Used
 
@@ -43,7 +43,7 @@ The SMART specification is an extension of the OAuth2 specification, as defined 
 There are several requirements in the SMART specification that require additional components over/above what Okta provides as a standard OIDC/OAuth2 authorization service. All of these components are provided in the reference implementation.
 * Launch parameter handling - when a SMART client requests access, it may ask for application session context, such as an active patient id to be returned from the authorization service.  The authorization service is responsible for determining the active patient record, even including a user-patient selection widget on the OAuth2 consent screen in the event that the user may view multiple patients. This behavior is not part of the OAuth2 specification, and requires special handling with Okta (or any other standard OAuth2 service).
 Additionally, the SMART specification expects this session context to be returned in the /token response, ***next to*** any id/access tokens.  While this expectation is in line with RFC6749, many standard authorization servers (including Okta) do not support this practice, and instead rely on the Open ID Connect protocol to communicate application session level information.
-![Launch Example](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/launch_example.png "Launch Example")
+![Launch Example](https://github.com/oktadeveloper/okta-smartfhir-docs/blob/main/images/launch_example.png "Launch Example")
 
 * Well known endpoints - the SMART specification has 2 additional well known metadata endpoints that are not part of the OAuth2 specification.  These endpoints provide typical authorization server metadata, and a capabilities statement.  Sample metadata endpoints are provided as part of this reference implementation.
 
@@ -79,7 +79,7 @@ These SMART enabled clients were used while developing this solution to ensure t
 * [Demo Patient Portal](https://github.com/udplabs/zartan) - Confidential app
 * [Cerner SMART App Validator](https://smart.sandboxcerner.com/smart-app-validator-2.0/launch.html) - Public app
 
-![Reference Implementation Architecture](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Reference_Architecture.png "Reference Implementation Architecture")
+![Reference Implementation Architecture](https://github.com/oktadeveloper/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Reference_Architecture.png "Reference Implementation Architecture")
 
 ### Component Detail
 
@@ -112,8 +112,11 @@ The token proxy is what is called by the SMART client to exchange it's authoriza
 
 * To perform private_key_jwt authentication with Okta for public applications.  A single, shared secret key is shared by all public SMART clients.  For confidential clients, client_id/client_secret from the SMART client is forwarded on to Okta.
 
+**Launch Response Cache**
+When authorizing FHIR API access using the SMART launch framework, any launch response data selected by the user at authorization time (such as a patient id in response to launch/patient scope) must also be taken into account if/when a token is refreshed using a refresh token. The launch response cache is a persistent store that is to be used to remember and replay the user's selections during the original authorization flow, that may be remembered during the refresh process. In the reference implementation a nosql database has been used that employs TTL (time to live) features so records automatically expire and are removed at roughly the same time a refresh token will expire.
+
 ## Reference Implementation Flow
-![Reference Implementation Flow](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Reference_flow.png "Reference Implementation Flow")
+![Reference Implementation Flow](https://github.com/oktadeveloper/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Reference_flow.png "Reference Implementation Flow")
 
 1.  User accesses a SMART-enabled app.
 
@@ -137,11 +140,36 @@ The token proxy is what is called by the SMART client to exchange it's authoriza
 
 11.  App calls the /token proxy to obtain an access token.​
 
-12.  /token proxy obtains the token from Okta, uses a private key to perform client authentication (public apps), or by forwarding client id/secret (confidential apps)
+12.  /token proxy obtains the token from Okta, using a private key to perform client authentication (public apps), or by forwarding client id/secret (confidential apps).
 
-13.  /token proxy also grabs the patient out of the access token, and decorates it's response JSON with the patient id if requested.
+13.  If Okta returns a refresh token to the /token proxy, the id of the refresh token, as well as any selected patient id are then stored in the launch response cache to be replayed again at refresh time.
 
-14.  App accesses the FHIR API
+14.  /token proxy grabs the selected patient id out of the access token, and decorates it's response JSON with the patient id if requested.
+
+15.  App accesses the FHIR API.
+
+## Refresh Flow
+![Refresh Flow](https://github.com/oktadeveloper/okta-smartfhir-docs/blob/main/images/SMART_FHIR_Reference_Refresh_Flow.png "Refresh Flow")
+
+1.  User accesses a SMART-enabled app. The application presents the user with a secure way of accessing the refresh token from device memory (biometric or similar).
+
+2.  The app invokes the /token proxy endpoint passing along the refresh token as well as client authentication (client_id/client_secret).
+
+3. The /token proxy passes the request along to Okta to request a new id/access token.
+
+4. Okta invokes the token hook.
+
+5. The token hook uses the refresh token id to retrieve any runtime cached information, such as patient id or other launch response information. This information is provided to Okta to include in the newly refreshed access token.
+
+6. Okta mints a new access token, including the retrieved cached information if any.
+
+7. The /token proxy will again re-insert the refreshed data back into the launch response cache. This achieves 2 things:
+* It will update the TTL on the record to indicate activity on the record so it will not expire.
+* Depending upon Okta configuration, Okta may issue a brand new refresh token upon every refresh request (versus reusing the original one). If this occurs, a new record will be required to be inserted into the cache. This logic is the same logic from step 13 in the authorization flow above.
+
+8. The /token proxy will grab the selected patient id out of the access token, and the response JSON will again be decorated with the patient id if requested. This is the same logic from step 14 in the authorization flow above.
+
+9. The app accesses the FHIR API.
 
 ## Set it up yourself!
-* [Reference Implementation Setup](https://github.com/dancinnamon-okta/okta-smartfhir-docs/blob/main/SETUP.md)
+* [Reference Implementation Setup](https://github.com/oktadeveloper/okta-smartfhir-docs/blob/main/SETUP.md)
