@@ -164,8 +164,8 @@ When authorizing FHIR API access using the SMART launch framework, any launch re
 6. Okta mints a new access token, including the retrieved cached information if any.
 
 7. The /token proxy will again re-insert the refreshed data back into the launch response cache. This achieves 2 things:
-  * It will update the TTL on the record to indicate activity on the record so it will not expire.
-  * Depending upon Okta configuration, Okta may issue a brand new refresh token upon every refresh request (versus reusing the original one). If this occurs, a new record will be required to be inserted into the cache. This logic is the same logic from step 13 in the authorization flow above.
+    * It will update the TTL on the record to indicate activity on the record so it will not expire.
+    * Depending upon Okta configuration, Okta may issue a brand new refresh token upon every refresh request (versus reusing the original one). If this occurs, a new record will be required to be inserted into the cache. This logic is the same logic from step 13 in the authorization flow above.
 
 8. The /token proxy will grab the selected patient id out of the access token, and the response JSON will again be decorated with the patient id if requested. This is the same logic from step 14 in the authorization flow above.
 
