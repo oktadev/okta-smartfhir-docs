@@ -27,7 +27,7 @@ There are 2 main standards in play in the reference implementation:
 **FHIR**
 
 The FHIR standard defines the patient access API itself. The standard includes endpoint names, standard input/output parameters, and data formats.
-Since the focus of this reference implementation is on API security and consent as provided by the SMART specification, a public FHIR API is used for demonstration purposes only.  This public FHIR API is hosted by [HAPI](https://hapi.fhir.org). In a real implementation, the payer organization will be responsible for implementing this API.
+Since the focus of this reference implementation is on API security and consent as provided by the SMART specification, this component is not provided by this reference implementation. The expectation is that your existing FHIR implementation has the ability to specify an authorization service.  If your FHIR service is currently unsecured, a seperate reference repository for testing SMART security on your FHIR service is available at: https://github.com/dancinnamon-okta/secured-fhir-proxy.
 
 More details about the FHIR API specification can be found here:
 [See more here](https://www.hl7.org/fhir/)
@@ -45,19 +45,14 @@ There are several requirements in the SMART specification that require additiona
 Additionally, the SMART specification expects this session context to be returned in the /token response, ***next to*** any id/access tokens.  While this expectation is in line with RFC6749, many standard authorization servers (including Okta) do not support this practice, and instead rely on the Open ID Connect protocol to communicate application session level information.
 ![Launch Example](./images/launch_example.png "Launch Example")
 
-* Well known endpoints - the SMART specification has 2 additional well known metadata endpoints that are not part of the OAuth2 specification.  These endpoints provide typical authorization server metadata, and a capabilities statement.  Sample metadata endpoints are provided as part of this reference implementation.
-
-* Public application authentication - the SMART specification allows for 2 types of client applications- public and confidential applications.  These application types are well defined in RFC6749.  Both application types are to use the authorization code flow, which is also well defined in RFC 6749.  Since the introduction of the SMART specification, a new protocol known as PKCE has been introduced to bolster the security posture for all OAuth2 applications.
-Okta, as a security company, has taken the stance that public clients may not use the authorization code flow unless PKCE is used.  To enable public SMART clients to authorize against Okta, an additional endpoint is required that will provide the requisite client authentication to Okta.
-
 ## Reference Implementation Architecture
 The reference implementation is depicted below.  It leverages the [serverless](https://www.serverless.com) framework to deploy all required components as serverless endpoints.
-The current implementation uses AWS products to host required functionality, but the intent in the near future is to abstract away any particular platform requirements so multi-cloud support may be achieved.
+The implementation has been developed using AWS products to host required functionality, but platform abstraction capabilities have been designed for (and have been designed for in the serverless framework as well).
 
 **Design Goals**
 * Implement as little as possible- Tokens minted by Okta are used as-is. Only the authorization process is customized to handle the additional aspects that SMART requires.
 
-* Stateless- No information is persisted by any of the components in this reference implementation- so no caches or databases are necessary.
+* Stateless- No information is persisted by any of the components in this reference implementation- caches/databases are limited not to user transactional activities, but rather only for storing user consent preferences to be replayed at token refresh time.
 
 * Serverless- This design is meant to be deployed to any API gateway+serverless platform, and does not require any complex server configuration or high availability considerations.
 
@@ -70,11 +65,11 @@ The current implementation uses AWS products to host required functionality, but
 * Refresh tokens for confidential applications
 
 **Reference implementation unsupported use cases:**
-* Refresh tokens for public applications- Due to security concerns. This use case would also require a refresh token cache so the client_id of the token can be determined at run time. This cache would introduce significant complexity to the design and implementation.
+* Refresh tokens for public applications- Due to security concerns. For public clients, Okta requires at least a minimum amount of client authentication (client_id must be specified).  This input is not required in the SMART specification- so additional logic must be implemented to work around this mismatch- and there has not yet been demand to do so.
 
 **Tested with clients**
 These SMART enabled clients were used while developing this solution to ensure that the requirements of the SMART launch framework are correctly implemented:
-* [Inferno Test Suite](https://inferno.healthit.gov/community) - Public or confidential app
+* [Inferno Test Suite](https://inferno.healthit.gov/suites) - Public or confidential app
 * [SMART/FHIR iOS Demo](https://github.com/dancinnamon-okta/SoF-Demo) - Public app
 * [Demo Patient Portal](https://github.com/udplabs/zartan) - Confidential app
 * [Cerner SMART App Validator](https://smart.sandboxcerner.com/smart-app-validator-2.0/launch.html) - Public app
@@ -83,10 +78,7 @@ These SMART enabled clients were used while developing this solution to ensure t
 
 ### Component Detail
 
-**smart-configuration/metadata Endpoint**
-These endpoints are merely static JSON files that communicate parameters about the deployment.  The only reason they are functions is to make deployment easier.
-
-**/authorize Proxy**
+**/smart/authorize Endpoint**
 The authorize proxy's purpose is to intercept SMART authorization requests, and inject a custom consent process at the beginning of the flow.
 
 **Patient Picker and Downscope**
@@ -99,7 +91,7 @@ This service determines exactly who can view which patient records, to the fine-
 In the reference implementation there is a very basic mock patient service, which can be found in mock_patient_service.js.
 
 **OAuth2 Callback Proxy**
-This endpoint is used to receive the authorization code from Okta as a result of the modified OAuth2 authorization process begun by custom consent screen. It will pass that authorization code back to the client app.
+This endpoint is used to receive the authorization code from Okta as a result of the modified OAuth2 authorization process begun by custom patient picker/consent screen. It will pass that authorization code and original authorization state back to the client app.
 
 **Token Hook**
 The token hook is an API endpoint that Okta calls as it processes the authorization request for the SMART client app (initiated by the custom consent screen). It has 2 purposes:
@@ -107,10 +99,7 @@ The token hook is an API endpoint that Okta calls as it processes the authorizat
 * Validate the signed JWT to ensure that the consent process was not bypassed in any way.
 
 **/token Proxy**
-The token proxy is what is called by the SMART client to exchange it's authorization code for an id/access token.  It serves 2 purposes:
-* To retrieve the patient id from the access token, and include it alongside the access token in it's response.
-
-* To perform private_key_jwt authentication with Okta for public applications.  A single, shared secret key is shared by all public SMART clients.  For confidential clients, client_id/client_secret from the SMART client is forwarded on to Okta.
+The token proxy is what is called by the SMART client to exchange it's authorization code for an id/access token.  It's purpose is to retrieve the patient id from the access token, and include it alongside the access token in it's response. It also is responsible for replaying any custom consent decisions during the token refresh process.
 
 **Launch Response Cache**
 When authorizing FHIR API access using the SMART launch framework, any launch response data selected by the user at authorization time (such as a patient id in response to launch/patient scope) must also be taken into account if/when a token is refreshed using a refresh token. The launch response cache is a persistent store that is to be used to remember and replay the user's selections during the original authorization flow, that may be remembered during the refresh process. In the reference implementation a nosql database has been used that employs TTL (time to live) features so records automatically expire and are removed at roughly the same time a refresh token will expire.
@@ -122,25 +111,25 @@ When authorizing FHIR API access using the SMART launch framework, any launch re
 
 2.  App determines authz endpoints from metadata.
 
-3.  App opens the /authorize proxy endpoint.
+3.  App opens the /smart/authorize endpoint.
 
-4.  Authorize proxy caches original request and performs authz with patient picker app instead.
+4.  Authorize proxy caches original request in a signed cookie, and performs authz with patient picker app instead.
 
 5.  User logs in with Okta.
 
-6.  User is brought to the patient picker app. The Okta API is used to retrieve SMART client and scope details.
+6.  User is brought to the patient picker app The patient picker app will retrieve the originial authorize request details from the signed cookie. The Okta API is then used to retrieve SMART client and scope details. These 2 sets of details are used to render the consent screen
 
 7.  Selected patient and approved scopes are combined with original request details and sent to Okta in a new /authorize request. Consent is sent alongside the parameters in a signed JWT using the "state" parameter.​
 
 8.  Okta calls a token hook to validate the signed consent JWT and to insert the selected patient into the access token.​
 
-9.  Okta returns authorization code to the callback proxy. The callback proxy validates the state parameter (the signed JWT). The callback proxy then retrieves the original OAuth2 state sent by the SMART app.
+9.  Okta returns authorization code to the callback proxy. The callback proxy validates the state parameter (the signed JWT). The callback proxy then retrieves the original OAuth2 state sent by the SMART app (this value has been stored in the signed cookie made in step 4).
 
 10.  The user is sent to the OAuth2 callback url of the app, with authorization code and original state.​
 
 11.  App calls the /token proxy to obtain an access token.​
 
-12.  /token proxy obtains the token from Okta, using a private key to perform client authentication (public apps), or by forwarding client id/secret (confidential apps).
+12.  /token proxy obtains the token from Okta passing along any client authentication (including PKCE) that the client sends in.
 
 13.  If Okta returns a refresh token to the /token proxy, the id of the refresh token, as well as any selected patient id are then stored in the launch response cache to be replayed again at refresh time.
 
