@@ -7,7 +7,7 @@ For an overview of this project and all of the components, please see here: [Pro
 ## Guide Index
 * [Prerequisites](#prerequisites)
 * [Automated/Guided Deployment](#automatedguided-deployment)
-* [Manual Deployment](#manual)
+* [Manual Deployment](#manual-deployment)
 
 ## Prerequisites
 * An Okta tenant ([Get one here free](https://developer.okta.com/signup)) 
