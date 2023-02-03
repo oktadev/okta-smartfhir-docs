@@ -6,7 +6,7 @@ For an overview of this project and all of the components, please see here: [Pro
 
 ## Guide Index
 * [Prerequisites](#prerequisites)
-* [Automated/Guided Deployment](#automatedguideddeployment)
+* [Automated/Guided Deployment](#automatedguided-deployment)
 * [Manual Deployment](#manual)
 
 ## Prerequisites
@@ -71,13 +71,14 @@ node deploy_aws.js
 ```
 Follow the guided process to finish your deployment!
 
-## Manual Deployment - Initial Okta Configuration
+## Manual Deployment
+### Step 1- Initial Okta Configuration
 There are 3 main sections to a manual deployment:
 1. Initial Okta configuration
 2. Deploy AWS resources
 3. Finalize Okta configuration
 
-### Step 1- Copy the serverless.aws.example.yml file
+### Step 2- Copy the serverless.aws.example.yml file
 Create a clone of this file for use for your manual deployment
 ```bash
 cp serverless.aws.yml serverless.yml
@@ -85,51 +86,51 @@ cp serverless.aws.yml serverless.yml
 
 *Note - the layout of serverless.yml file specifies all configurable variables at the top of the file, within the "params" section.  No other configuration outside of this section should be necessary.*
 
-### Step 2- Copy the okta_org_config_example.json file
+### Step 3- Copy the okta_org_config_example.json file
 Create a clone of this file for use in your manual deployment
 ```bash
 cd /deploy/okta
 cp okta_org_config_example.json okta_org_config.json
 ```
 
-### Step 3- Get an Okta API key, and fill out the okta_org_config.json file.
+### Step 4- Get an Okta API key, and fill out the okta_org_config.json file.
 The details within the okta_org_config file are documented within the file. The "SUFFIX" setting will cause that value to be appended to all objects within Okta (except for claim/attribute names that must be named a certain way).
 
 *Note: Omit the "SAMPLEUSER" fields if you do not wish to create a sample user in the Okta tenant.*
 
-### Step 4- Run initial Okta deployment- in /deploy/okta
+### Step 5- Run initial Okta deployment- in /deploy/okta
 ```bash
 node deploy_okta_objects.js okta_org_config.json init
 ```
 
-### Step 5- Copy output to applicable fields in serverless.yml
+### Step 6- Copy output to applicable fields in serverless.yml
 The output of the initial deploy is verbose and explains which fields need to go where in serverless.yml.
 
-### Step 6- Configure custom domain in Okta - in /deploy/okta:
+### Step 7- Configure custom domain in Okta - in /deploy/okta:
 ```bash
 node add_custom_domain.js
 ```
 
 This script will output to the screen the proper DNS configuration that is necessary for validating the domain.  It will also output the "domain id" to the screen that you'll need in the next step.
 
-### Step 7 - Validate the custom domain in Okta - in /deploy/okta:
+### Step 8- Validate the custom domain in Okta - in /deploy/okta:
 After you've setup the proper DNS records with your DNS vendor, run:
 ```bash
 node verify_custom_domain.js
 ```
 
-### Step 8 - Request certificates in the AWS ACM system
+### Step 9- Request certificates in the AWS ACM system
 Within the AWS console, request a TLS certificate for your authz domain that you've decided upon, and configured as the domain within Okta.
 
 *Note- you must request this certificate within your deployed region AND us-east-1, if different.
 
-### Step 9 - Create the AWS custom domain - in /:
+### Step 10- Create the AWS custom domain - in /:
 This step will configure a custom domain within the AWS API gateway that will be used in the final AWS deploy step.
 ```bash
 serverless create_domain --verbose -c serverless.yml
 ```
 
-### Step 10 - Get the API GW custom domain "backend domain name" from the AWS Console
+### Step 11- Get the API GW custom domain "backend domain name" from the AWS Console
 Visit: https://YOURREGION.console.aws.amazon.com/apigateway/main/publish/domain-names?region=YOURREGION
 
 Copy the "API Gateway domain name" field into your serverless file.
@@ -138,20 +139,20 @@ It will look similar to: <uniqueid>.execute-api.${state.awsRegion}.amazonaws.com
 API_GATEWAY_DOMAIN_NAME_BACKEND: API Gateway domain name from AWS console
 ```
 
-### Step 11 - Finalize AWS deployment - in /:
+### Step 12- Finalize AWS deployment - in /:
 In this step we'll finalize the AWS deployment in AWS using the serverless framework.
 ```bash
 serverless deploy --verbose -c serverless.yml
 ```
 
 *Note this step will likely take 10-15 minutes to execute to completion.*
-### Step 12 - Finalize Okta deployment
+### Step 13- Finalize Okta deployment
 Now we'll finalize the Okta deployment.  In /deploy/okta:
 ```bash
 node deploy_okta_objects.js okta_org_config.json finalize
 ```
 
-### Step 13 - Update your authz domain CNAME record
+### Step 14- Update your authz domain CNAME record
 For the final step, go into the cloudfront module within the AWS console.
 In the console, you should see a "distribution" for your new deployment.  You need to copy the "DomainName" field - it will be similar to: <uniqueid>.cloudfront.net.
 You need to update your CNAME record that you created in step 6/7 such that your authorization server domain name points to cloudfront instead of Okta directly.
