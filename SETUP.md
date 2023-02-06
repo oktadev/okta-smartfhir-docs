@@ -90,7 +90,7 @@ cp serverless.aws.yml serverless.yml
 ### Step 3- Copy the okta_org_config_example.json file
 Create a clone of this file for use in your manual deployment
 ```bash
-cd /deploy/okta
+cd deploy/okta
 npm install
 cp okta_org_config_example.json okta_org_config.json
 ```
