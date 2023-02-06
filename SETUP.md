@@ -78,9 +78,10 @@ There are 3 main sections to a manual deployment:
 2. Deploy AWS resources
 3. Finalize Okta configuration
 
-### Step 2- Copy the serverless.aws.example.yml file
+### Step 2- Copy the serverless.aws.example.yml file- in okta-smartfhir-demo directory:
 Create a clone of this file for use for your manual deployment
 ```bash
+npm install
 cp serverless.aws.yml serverless.yml
 ```
 
@@ -90,6 +91,7 @@ cp serverless.aws.yml serverless.yml
 Create a clone of this file for use in your manual deployment
 ```bash
 cd /deploy/okta
+npm install
 cp okta_org_config_example.json okta_org_config.json
 ```
 
@@ -105,6 +107,7 @@ node deploy_okta_objects.js okta_org_config.json init
 
 ### Step 6- Copy output to applicable fields in serverless.yml
 The output of the initial deploy is verbose and explains which fields need to go where in serverless.yml.
+*Note: You should have values for all parameters except for API_GATEWAY_DOMAIN_NAME_BACKEND. We'll fill this value in step 11*
 
 ### Step 7- Configure custom domain in Okta - in /deploy/okta:
 ```bash
@@ -116,7 +119,7 @@ This script will output to the screen the proper DNS configuration that is neces
 ### Step 8- Validate the custom domain in Okta - in /deploy/okta:
 After you've setup the proper DNS records with your DNS vendor, run:
 ```bash
-node verify_custom_domain.js
+node verify_custom_domain.js <domain ID output in step 7>
 ```
 
 ### Step 9- Request certificates in the AWS ACM system
@@ -134,7 +137,7 @@ serverless create_domain --verbose -c serverless.yml
 Visit: https://YOURREGION.console.aws.amazon.com/apigateway/main/publish/domain-names?region=YOURREGION
 
 Copy the "API Gateway domain name" field into your serverless file.
-It will look similar to: <uniqueid>.execute-api.${state.awsRegion}.amazonaws.com
+It will look similar to: __uniqueid__.execute-api.__awsregion__.amazonaws.com
 ```yaml
 API_GATEWAY_DOMAIN_NAME_BACKEND: API Gateway domain name from AWS console
 ```
@@ -146,16 +149,25 @@ serverless deploy --verbose -c serverless.yml
 ```
 
 *Note this step will likely take 10-15 minutes to execute to completion.*
-### Step 13- Finalize Okta deployment
-Now we'll finalize the Okta deployment.  In /deploy/okta:
+### Step 13- Update your authz domain CNAME record
+For the final AWS/DNS step, go into the cloudfront module within the AWS console.
+In the console, you should see a "distribution" for your new deployment.  You need to copy the "DomainName" field - it will be similar to: __uniqueid__.cloudfront.net.
+You need to update your CNAME record that you created in step 6/7 such that your authorization server domain name points to cloudfront instead of Okta directly.
+
+
+### Step 14- Finalize Okta deployment
+For the final overall step, we'll finalize the Okta deployment.  In /deploy/okta:
 ```bash
 node deploy_okta_objects.js okta_org_config.json finalize
 ```
 
-### Step 14- Update your authz domain CNAME record
-For the final step, go into the cloudfront module within the AWS console.
-In the console, you should see a "distribution" for your new deployment.  You need to copy the "DomainName" field - it will be similar to: <uniqueid>.cloudfront.net.
-You need to update your CNAME record that you created in step 6/7 such that your authorization server domain name points to cloudfront instead of Okta directly.
+## Endpoints
+Once complete- the following endpoints will be available for you to provide your FHIR service:
+* Issuer (if your FHIR server needs it): https://yourauthzdomain.your.tld/oauth2/{serverless.FHIR_AUTHZ_SERVER_ID}
+* Authorize: https://yourauthzdomain.your.tld/oauth2/{serverless.FHIR_AUTHZ_SERVER_ID}/smart/v1/authorize
+* Token: https://yourauthzdomain.your.tld/oauth2/{serverless.FHIR_AUTHZ_SERVER_ID}/v1/token
+* Keys: https://yourauthzdomain.your.tld/oauth2/{serverless.FHIR_AUTHZ_SERVER_ID}/v1/keys
+
 
 ## Optional - create a sample user
 If you want to create a sample user with a sample FHIR ID, run:
