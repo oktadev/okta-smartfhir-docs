@@ -3,6 +3,8 @@
 
 [Setup a Reference SMART/FHIR Deployment Here!](./SETUP.md)
 
+*Note: This documentation has recently been overhauled to document an automated deploy process.  If you were thrown off by this change- please see the original documentation [here](https://github.com/oktadev/okta-smartfhir-docs/tree/original-v1-documentation)*
+
 ## Introduction
 With the introduction of the [CMS Interoperability and Patient Access final rule](https://www.cms.gov/Regulations-and-Guidance/Guidance/Interoperability/index) in early 2020, Medicare/Medicaid/CHIP serving health insurance providers must provide a standardized API for patients to access their healthcare related data.
 
