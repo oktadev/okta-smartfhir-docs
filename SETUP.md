@@ -4,6 +4,8 @@ This guide is intended to walk you through how to setup your very own reference 
 This guide focuses on the AWS platform. There will be additional guides for other cloud providers to come.
 For an overview of this project and all of the components, please see here: [Project Introduction](./README.md)
 
+*Note: This documentation has recently been overhauled to document an automated deploy process.  If you were thrown off by this change- please see the original documentation [here](https://github.com/oktadev/okta-smartfhir-docs/tree/original-v1-documentation)*
+
 ## Guide Index
 * [Prerequisites](#prerequisites)
 * [Automated/Guided Deployment](#automatedguided-deployment)
